@@ -53,12 +53,13 @@ void renderAll(){
     cairo_fill(cr);
     cairo_set_source_hex(FOREGROUND_COLOR);
     //cairo_paint(cr);
+    double x = HORIZONTAL_PADDING + xoffset + (wwidth - textwidth - HORIZONTAL_PADDING * 2) / 2;
     double y = textheight + VERTICAL_PADDING + yoffset;
     //cairo_set_source_rgb(cr,255,255,255);
     //cairo_set_source_rgb(cr,0,0,0);
     for (int i = 0; i < linescount; i++)
     {
-        cairo_move_to(cr, HORIZONTAL_PADDING + xoffset, y);
+        cairo_move_to(cr, x, y);
         cairo_show_text(cr, lines[i]);
         y+=textheight*LINE_HEIGHT;
     }
@@ -78,20 +79,17 @@ void renderButtons(int clear){
     x+=xoffset;
     y+=yoffset;
 
-    /*
-        Clearing is never needed, because the new button will be drawn ontop of the old button (pixel perfect)
-    if (clear){
-        cairo_set_source_hex(BACKGROUND_COLOR);
-        cairo_rectangle(cr, x, y, buttonwidth, height);
-        cairo_fill(cr);
-    }
-    */
-
 
     Button *current = buttons;
     while (current != NULL){
         double degrees = PI / 180.0;
         double width = current->w + 2*BUTTON_PADDING + 2 * BORDER_THICKNESS;
+        double centerx = 0;
+        if (BUTTON_MIN_WIDTH > width){
+            centerx = (BUTTON_MIN_WIDTH - width) / 2;
+            width = BUTTON_MIN_WIDTH;
+        }
+
         cairo_new_sub_path (cr);
         cairo_arc (cr, x + width - BORDER_RADIUS, y + BORDER_RADIUS, BORDER_RADIUS, -90 * degrees, 0 * degrees);
         cairo_arc (cr, x + width - BORDER_RADIUS, y + height - BORDER_RADIUS, BORDER_RADIUS, 0 * degrees, 90 * degrees);
@@ -125,7 +123,9 @@ void renderButtons(int clear){
                 cairo_set_source_hex (BUTTON_NO_FOREGROUND_COLOR);
                 break;
         }
-        cairo_move_to(cr, x + BUTTON_PADDING + BORDER_THICKNESS, y + BORDER_THICKNESS + BUTTON_PADDING + textheight);
+
+        cairo_move_to(cr,   x + BUTTON_PADDING + BORDER_THICKNESS + centerx, 
+                            y + BORDER_THICKNESS + BUTTON_PADDING + textheight);
         cairo_show_text(cr, current->text);
 
         current->x = x;
@@ -141,11 +141,13 @@ void renderButtons(int clear){
 
 
 
+/*
 
 
+    Button events
 
 
-
+*/
 
 void buttonCheckHover(int x, int y){
     if (buttons == NULL || y < buttons->y - 40)return;
@@ -153,6 +155,7 @@ void buttonCheckHover(int x, int y){
     Button *current = buttons;
     while (current != NULL){
         int w = current->w + 2 * BUTTON_PADDING + 2 * BORDER_THICKNESS;
+        if (BUTTON_MIN_WIDTH>w)w=BUTTON_MIN_WIDTH;
         current->hovering = (x >= current->x) && (y >= current->y) && (x <= current->x + w) && (y <= current->y + h);
         current = current->next;
     }
@@ -165,6 +168,7 @@ void buttonCheckPress(int x, int y){
     Button *current = buttons;
     while (current != NULL){
         int w = current->w + 2 * BUTTON_PADDING + 2 * BORDER_THICKNESS;
+        if (BUTTON_MIN_WIDTH>w)w=BUTTON_MIN_WIDTH;
         if ((x >= current->x) && (y >= current->y) && (x <= current->x + w) && (y <= current->y + h)){
             printf("%s\n", current->text);
             cleanup();
@@ -193,100 +197,78 @@ void parseButtons(char *buttonstring){
     cairo_select_font_face(cairo, FONT_NAME, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cairo, FONT_SIZE);
 
-    Button *current, *temp;
+    Button *current;
     int len = strlen(buttonstring);
     int last = 0;
     for (int i = 0; i < len; i++)
     {   
         if (buttonstring[i] == '\n'){
-            temp = malloc(sizeof(Button));
-            if (last == 0){
-                current = temp;
-                buttons = temp;
-            }
-            else{
-                current->next = temp;
-            }
-
-            temp->x=0;
-            temp->y=0;
-            temp->hovering=False;
-            temp->type=Default;
-
-            int typebit = 0;
-            if (buttonstring[last] == '!'){
-                typebit = 1;
-                temp->type = No;
-            }
-            else if (buttonstring[last] == '#'){
-                typebit = 1;
-                temp->type = Yes;
-            }
-
-            
-            temp->text = malloc(sizeof(char) * (i - last + 1 - typebit));
-            strncpy(temp->text, (buttonstring + last + typebit), i - last - typebit);
-            temp->text[i - last - typebit] = '\0';
-
-            cairo_text_extents(cairo, temp->text, extents);
-            temp->w=extents->width;
-            buttonwidth += extents->width + 2 * BUTTON_PADDING + 2 * BORDER_THICKNESS + BUTTON_MARGIN;
-
-
-            current = temp;
-            last = i + 1;
+            last = addButton(buttonstring, i, last, &current, cairo, extents);
 
         }
     }
 
 
 
-    temp = malloc(sizeof(Button));
-    if (last == 0){
-        buttons = temp;
-    }
-    else{
-        current->next = temp;
-    }
-
-    temp->x=0;
-    temp->y=0;
-    temp->hovering=False;            
-
-    int typebit = 0;
-    if (buttonstring[last] == '!'){
-        typebit = 1;
-        temp->type = No;
-    }
-    else if (buttonstring[last] == '#'){
-        typebit = 1;
-        temp->type = Yes;
-    }
-
-    
-    temp->text = malloc(sizeof(char) * (len - last + 1 - typebit));
-    strncpy(temp->text, (buttonstring + last + typebit), len - last - typebit);
-    temp->text[len - last - typebit] = '\0';
-
-    cairo_text_extents(cairo, temp->text, extents);
-    buttonwidth += extents->width + 2 * BUTTON_PADDING + 2 * BORDER_THICKNESS + BUTTON_MARGIN;
-    temp->w = extents->width;
-    temp->next = NULL;
+    addButton(buttonstring, len, last, &current, cairo, extents);
 
     buttonwidth -= BUTTON_MARGIN;
 
-    
     free(extents);
     cairo_surface_destroy(surface);
     cairo_destroy(cairo);
 
 }
 
+int addButton(char* string, int i, int last, Button **current, cairo_t *cairo, cairo_text_extents_t *extents){
+    Button *temp = malloc(sizeof(Button));
+    if (last == 0){
+        (*current) = temp;
+        buttons = temp;
+    }
+    else{
+        (*current)->next = temp;
+    }
+    temp->x=0;
+    temp->y=0;
+    temp->hovering=False;
+    temp->type=Default;
 
+    int typebit = 0;
+    if (string[last] == '!'){
+        typebit = 1;
+        temp->type = No;
+    }
+    else if (string[last] == '#'){
+        typebit = 1;
+        temp->type = Yes;
+    }
+
+    
+    temp->text = malloc(sizeof(char) * (i - last + 1 - typebit));
+    strncpy(temp->text, (string + last + typebit), i - last - typebit);
+    temp->text[i - last - typebit] = '\0';
+
+    cairo_text_extents(cairo, temp->text, extents);
+    temp->w=extents->width;
+    int tempwidth = extents->width + 2 * BUTTON_PADDING + 2 * BORDER_THICKNESS;
+    if (BUTTON_MIN_WIDTH > tempwidth)tempwidth = BUTTON_MIN_WIDTH;
+    buttonwidth += tempwidth + BUTTON_MARGIN;
+
+
+    (*current) = temp;
+    return i + 1;
+}
+
+
+
+//Note_ Border With needs to be specified before the buttons!,also BUTTON_MIN_WIDTH and so on
+//Buttons should come last
 void processArguments(int argc, char *argv[]){
     
     int i = 0;
     while (i < argc){
+        //General
         if (!strcmp(argv[i],"-t")){
             signal(SIGALRM, timeout);
             alarm(atoi(argv[++i]));
@@ -296,12 +278,87 @@ void processArguments(int argc, char *argv[]){
         }
         else if (!strcmp(argv[i], "-title")){
             TITLE = argv[++i];
+        }//Font
+        else if (!strcmp(argv[i], "-fn")){
+            FONT_NAME = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-fs")){
+            FONT_SIZE = atof(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-type")){
+            WINDOW_TYPE = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-lheight")){
+            LINE_HEIGHT = atof(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-p")){
+            BUTTON_POSITION = atoi(argv[++i]);
         }
         else if (!strcmp(argv[i], "-x")){
             X = atoi(argv[++i]);
         }
         else if (!strcmp(argv[i], "-y")){
             Y = atoi(argv[++i]);
+        }//Sizes
+        else if (!strcmp(argv[i], "-vp")){
+            VERTICAL_PADDING = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-hp")){
+            HORIZONTAL_PADDING = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-bp")){
+            BUTTON_PADDING = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-bm")){
+            BUTTON_MARGIN = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-bvm")){
+            BUTTON_VERTICAL_MARGIN = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-br")){
+            BORDER_RADIUS = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-bt")){
+            BORDER_THICKNESS = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-bmw")){
+            BUTTON_MIN_WIDTH = atoi(argv[++i]);
+        }//Colors
+        else if (!strcmp(argv[i], "-bc")){
+            BACKGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-fc")){
+            FOREGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-bbc")){
+            BUTTON_BORDER_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-bdfc")){
+            BUTTON_FOREGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-bdbc")){
+            BUTTON_BACKGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-bdhc")){
+            BUTTON_HOVER_BACKGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-byfc")){
+            BUTTON_YES_FOREGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-bybc")){
+            BUTTON_YES_BACKGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-byhc")){
+            BUTTON_YES_HOVER_BACKGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-bnfc")){
+            BUTTON_NO_FOREGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-bnbc")){
+            BUTTON_NO_BACKGROUND_COLOR = argv[++i];
+        }
+        else if (!strcmp(argv[i], "-bnhc")){
+            BUTTON_NO_HOVER_BACKGROUND_COLOR = argv[++i];
         }
 
         i++;

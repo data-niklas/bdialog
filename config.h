@@ -12,7 +12,8 @@ unsigned int BUTTON_PADDING = 8;
 unsigned int BUTTON_MARGIN = 4;
 unsigned int BUTTON_VERTICAL_MARGIN = 2;
 unsigned int BORDER_RADIUS = 4;
-unsigned int BORDER_THICKNESS = 1;
+unsigned int BORDER_THICKNESS = 0;
+unsigned int BUTTON_MIN_WIDTH = 50;
 
 int X = -1;
 int Y = -1;

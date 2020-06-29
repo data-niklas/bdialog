@@ -50,6 +50,7 @@ void cairo_set_source_hex(char* hexcode);
 void initCairo();
 void renderAll();
 void renderButtons(int clear);
+int addButton(char* string, int i, int last, Button **current, cairo_t *cairo, cairo_text_extents_t *extents);
 
 void buttonCheckHover(int x, int y);
 void buttonCheckPress(int x, int y);
