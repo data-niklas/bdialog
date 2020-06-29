@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "string_view": "c",
+        "tuple": "c",
+        "random": "c",
+        "bdialog.h": "c"
+    }
+}
