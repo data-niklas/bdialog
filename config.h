@@ -1,7 +1,10 @@
 #define BUFFERSIZE 256
 
 char* TITLE="BDialog";
-char* ICON_NAME = "XTest";
+char* ICON_NAME = "BDialog";
+
+//Can be DIALOG / DOCK / MENU / TOOLBAR
+char* WINDOW_TYPE = "DIALOG";
 
 unsigned int VERTICAL_PADDING = 16;
 unsigned int HORIZONTAL_PADDING = 48;
@@ -9,7 +12,10 @@ unsigned int BUTTON_PADDING = 8;
 unsigned int BUTTON_MARGIN = 4;
 unsigned int BUTTON_VERTICAL_MARGIN = 2;
 unsigned int BORDER_RADIUS = 4;
-unsigned int BORDER_THICKNESS = 0;
+unsigned int BORDER_THICKNESS = 1;
+
+int X = -1;
+int Y = -1;
 
 // 0 (Left) 1 (Center) 2 (Right)
 unsigned int BUTTON_POSITION = 2;

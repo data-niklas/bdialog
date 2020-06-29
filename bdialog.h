@@ -31,14 +31,17 @@ Button *buttons;
 Atom WM_DELETE_WINDOW;
 
 
-
 char** lines;
 unsigned int textwidth = 0;
 unsigned int textheight = 0;
 unsigned int buttonwidth = 0;
 unsigned int linescount = 0;
+// The window width and height as it should be
 unsigned int wwidth = 0;
 unsigned int wheight = 0;
+// The window width and height as it actually is
+unsigned int xoffset = 0;
+unsigned int yoffset = 0;
 
 
 

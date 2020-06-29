@@ -1,5 +1,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xatom.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-xlib.h>
 #include <stdio.h>
@@ -48,21 +49,21 @@ void initCairo(){
 void renderAll(){
     
     cairo_set_source_hex(BACKGROUND_COLOR);
-    cairo_paint(cr);
+    cairo_rectangle(cr, 0, 0, wwidth + 2 * xoffset, wheight + 2 * yoffset);
+    cairo_fill(cr);
     cairo_set_source_hex(FOREGROUND_COLOR);
     //cairo_paint(cr);
-    double y = VERTICAL_PADDING + 16;
+    double y = textheight + VERTICAL_PADDING + yoffset;
     //cairo_set_source_rgb(cr,255,255,255);
     //cairo_set_source_rgb(cr,0,0,0);
     for (int i = 0; i < linescount; i++)
     {
-        cairo_move_to(cr, HORIZONTAL_PADDING, y);
+        cairo_move_to(cr, HORIZONTAL_PADDING + xoffset, y);
         cairo_show_text(cr, lines[i]);
         y+=textheight*LINE_HEIGHT;
     }
     renderButtons(False);
     cairo_stroke(cr);
-    cairo_surface_flush(surface);
     
 }
 
@@ -74,6 +75,8 @@ void renderButtons(int clear){
     double y = wheight - BUTTON_VERTICAL_MARGIN - height;
     if (BUTTON_POSITION == 1)x = (wwidth - buttonwidth) / 2;
     else if (BUTTON_POSITION == 2)x = wwidth - buttonwidth - BUTTON_MARGIN;
+    x+=xoffset;
+    y+=yoffset;
 
     /*
         Clearing is never needed, because the new button will be drawn ontop of the old button (pixel perfect)
@@ -145,7 +148,7 @@ void renderButtons(int clear){
 
 
 void buttonCheckHover(int x, int y){
-    if (buttons == NULL || y < buttons->y)return;
+    if (buttons == NULL || y < buttons->y - 40)return;
     int h = textheight + 2 * BUTTON_PADDING + 2 * BORDER_THICKNESS;
     Button *current = buttons;
     while (current != NULL){
@@ -294,6 +297,12 @@ void processArguments(int argc, char *argv[]){
         else if (!strcmp(argv[i], "-title")){
             TITLE = argv[++i];
         }
+        else if (!strcmp(argv[i], "-x")){
+            X = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-y")){
+            Y = atoi(argv[++i]);
+        }
 
         i++;
     }
@@ -325,6 +334,7 @@ void readInput(){
             exit(1);
         }
     }
+    
 
     linescount = index;
 
@@ -372,14 +382,21 @@ void setStringProperty(char* property, char* value){
 
 
 void makeWindow(){
+
+    //Set the width and height
     wwidth = textwidth + HORIZONTAL_PADDING * 2;
     int totalbuttonwidth = buttonwidth + 2 * BUTTON_MARGIN;
     if (totalbuttonwidth > wwidth)wwidth = totalbuttonwidth;
     wheight = (textheight * LINE_HEIGHT) * linescount + VERTICAL_PADDING * 2;
     if (buttons != NULL)wheight += BUTTON_PADDING * 2 + textheight;
+    xoffset = 0;
+    yoffset = 0;
+
     window_attributes.background_pixel = XWhitePixel(dpy, screen);
     window_attributes.border_pixel = XBlackPixel(dpy, screen);
     window_attributes.override_redirect = False;
+
+    //Create the window
     window = XCreateWindow(dpy,
                 root,
                 0, 0,
@@ -391,10 +408,12 @@ void makeWindow(){
                 CWBackPixel|CWBorderPixel,
                 &window_attributes
             );
-    //setStringProperty("WM_NAME", "XTest");
-    XSelectInput(dpy, window, ExposureMask|KeyPressMask|ButtonPressMask|ResizeRedirectMask|PointerMotionMask);
+
+    // Close on x button
+    XSelectInput(dpy, window, ExposureMask|KeyPressMask|ButtonPressMask|PointerMotionMask);
     XSetWMProtocols(dpy, window, &WM_DELETE_WINDOW, 1);
 
+    // Set the title
     XStoreName(dpy, window, TITLE);
     XTextProperty *iconproperty = malloc(sizeof(XTextProperty));
     int return_code;
@@ -402,9 +421,39 @@ void makeWindow(){
                                1,
                                iconproperty);
     XSetWMIconName(dpy, window, iconproperty);
+    XClassHint ch = {"bdialog", "bdialog"};
+    XSetClassHint(dpy, window, &ch);
+
+
+    Atom type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+    char window_type[20 + strlen(WINDOW_TYPE)];
+    strcpy(window_type, "_NET_WM_WINDOW_TYPE_");
+    strcat(window_type, WINDOW_TYPE);
+    long value = XInternAtom(dpy, window_type, False);
+    XChangeProperty(dpy, window, type, XA_ATOM, 32, PropModeReplace, (unsigned char *) &value, 1);
+
+    //Disable resizing for some wms
+
     free(iconproperty);
 
-    XMapWindow(dpy, window);
+    // Show the window
+    XMapRaised(dpy, window);
+
+    //Reposition
+    XWindowChanges *changes = malloc(sizeof(XWindowChanges));
+    unsigned long mask = 0;
+    if (X >= 0){
+        mask |= CWX;
+        changes->x = X; 
+    }
+    if (Y >= 0){
+        mask |= CWY;
+        changes->y = Y;
+    }
+
+    XConfigureWindow(dpy, window, mask, changes);
+    free(changes);
+
     XFlush(dpy);
 }
 
@@ -427,14 +476,18 @@ int main(int argc, char *argv[]){
     readInput();
     init();
     makeWindow();
-    //sleep(1);
 
     while (1)  {
         XNextEvent(dpy, &events);
         switch  (events.type) {
             case Expose:
-                initCairo();
-                renderAll();
+                if (events.xexpose.count == 0){
+                    if (cr == NULL)initCairo();
+                    xoffset = (events.xexpose.width - wwidth) / 2;
+                    yoffset = (events.xexpose.height - wheight) / 2;
+                    cairo_xlib_surface_set_size(surface, events.xexpose.width, events.xexpose.height);
+                    renderAll();
+                }
             break;
             case KeyPress:
                 //Escape key
@@ -451,9 +504,7 @@ int main(int argc, char *argv[]){
             case ClientMessage:
                 if (events.xclient.data.l[0] == WM_DELETE_WINDOW)goto end;
             break;
-            case ResizeRequest:
-                renderAll();
-            break;
+
                        
         }
     }
