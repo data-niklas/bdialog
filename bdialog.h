@@ -36,27 +36,42 @@ unsigned int textwidth = 0;
 unsigned int textheight = 0;
 unsigned int buttonwidth = 0;
 unsigned int linescount = 0;
-// The window width and height as it should be
+
+/*
+
+	The preferred and hopefully initial width and height
+	The content will always stay that size
+
+*/
 unsigned int wwidth = 0;
 unsigned int wheight = 0;
-// The window width and height as it actually is
+
+/* 
+	The content will always stay centered
+	This is achieved by moving rendering the content with the x and y offset
+	--> xoffset = (totalwidth - wwidth) / 2
+
+*/
 unsigned int xoffset = 0;
 unsigned int yoffset = 0;
 
 
 
-
+// Setting the rgb color from a hexstring, e.g.: '#000000'
 void cairo_set_source_hex(char* hexcode);
+// Initialize the drawing area, first called by the Expose event in the main method
 void initCairo();
 void renderAll();
 void renderButtons(int clear);
-int addButton(char* string, int i, int last, Button **current, cairo_t *cairo, cairo_text_extents_t *extents);
 
 void buttonCheckHover(int x, int y);
 void buttonCheckPress(int x, int y);
 
+// Parse the buttons from the text after the -b parameter
 void parseButtons(char* buttonstring);
+int addButton(char* string, int i, int last, Button **current, cairo_t *cairo, cairo_text_extents_t *extents);
 void processArguments(int argc, char *argv[]);
+// Read the piped input
 void readInput();
 
 void setStringProperty(char* property, char* value);

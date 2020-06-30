@@ -291,7 +291,10 @@ void processArguments(int argc, char *argv[]){
         else if (!strcmp(argv[i], "-lheight")){
             LINE_HEIGHT = atof(argv[++i]);
         }
-        else if (!strcmp(argv[i], "-p")){
+        else if (!strcmp(argv[i], "-wp")){
+            WINDOW_POSITION = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-bp")){
             BUTTON_POSITION = atoi(argv[++i]);
         }
         else if (!strcmp(argv[i], "-x")){
@@ -323,6 +326,9 @@ void processArguments(int argc, char *argv[]){
         }
         else if (!strcmp(argv[i], "-bmw")){
             BUTTON_MIN_WIDTH = atoi(argv[++i]);
+        }
+        else if (!strcmp(argv[i], "-wm")){
+            WINDOW_MARGIN = atoi(argv[++i]);
         }//Colors
         else if (!strcmp(argv[i], "-bc")){
             BACKGROUND_COLOR = argv[++i];
@@ -445,7 +451,7 @@ void makeWindow(){
     int totalbuttonwidth = buttonwidth + 2 * BUTTON_MARGIN;
     if (totalbuttonwidth > wwidth)wwidth = totalbuttonwidth;
     wheight = (textheight * LINE_HEIGHT) * linescount + VERTICAL_PADDING * 2;
-    if (buttons != NULL)wheight += BUTTON_PADDING * 2 + textheight;
+    if (buttons != NULL)wheight += BUTTON_PADDING * 2 + textheight + BORDER_THICKNESS * 2 + BUTTON_VERTICAL_MARGIN;
     xoffset = 0;
     yoffset = 0;
 
@@ -473,8 +479,7 @@ void makeWindow(){
     // Set the title
     XStoreName(dpy, window, TITLE);
     XTextProperty *iconproperty = malloc(sizeof(XTextProperty));
-    int return_code;
-    return_code = XStringListToTextProperty(&ICON_NAME,
+    XStringListToTextProperty(&ICON_NAME,
                                1,
                                iconproperty);
     XSetWMIconName(dpy, window, iconproperty);
@@ -497,6 +502,38 @@ void makeWindow(){
     XMapRaised(dpy, window);
 
     //Reposition
+    if (WINDOW_POSITION >= 0 && WINDOW_POSITION <= 8){
+        int x,y;
+        unsigned int w,h,b,d;
+        Window *r = malloc(sizeof(Window));
+        XGetGeometry(dpy, root, r,&x,&y,&w,&h,&b,&d);
+        free(r);
+
+        int column = WINDOW_POSITION % 3;
+        int row = (WINDOW_POSITION - column) / 3;
+        switch (column){
+            case 0:
+                X = WINDOW_MARGIN;
+                break;
+            case 1:
+                X = (w - wwidth) / 2;
+                break;
+            case 2:
+                X =  w - wheight - WINDOW_MARGIN;
+                break;
+        }
+        switch (row){
+            case 0:
+                Y = WINDOW_MARGIN;
+                break;
+            case 1:
+                Y = (h - wheight) / 2;
+                break;
+            case 2:
+                Y = h - wheight - WINDOW_MARGIN;
+                break;
+        }
+    }
     XWindowChanges *changes = malloc(sizeof(XWindowChanges));
     unsigned long mask = 0;
     if (X >= 0){
