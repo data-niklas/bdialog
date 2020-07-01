@@ -49,12 +49,12 @@ char* BUTTON_FOREGROUND_COLOR = "#000000";
 
 // Render a button as a "Yes" button by prepending a '#' before the text, e.g. "bdialog -b '#Yes'"
 char* BUTTON_YES_BACKGROUND_COLOR = "#7eed00";
-char* BUTTON_YES_HOVER_BACKGROUND_COLOR = "#78dd04";
+char* BUTTON_YES_HOVER_BACKGROUND_COLOR = "#88cd04";
 char* BUTTON_YES_FOREGROUND_COLOR = "#000000";
 
 //Same as yes, but use a '!'
 char* BUTTON_NO_BACKGROUND_COLOR = "#F03D43";
-char* BUTTON_NO_HOVER_BACKGROUND_COLOR = "#EC3F45";
+char* BUTTON_NO_HOVER_BACKGROUND_COLOR = "#DC3F45";
 char* BUTTON_NO_FOREGROUND_COLOR = "#000000";
 
 char* BUTTON_BORDER_COLOR = "#DDDDDD";

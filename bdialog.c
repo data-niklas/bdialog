@@ -90,6 +90,7 @@ void renderButtons(int clear){
             width = BUTTON_MIN_WIDTH;
         }
 
+
         cairo_new_sub_path (cr);
         cairo_arc (cr, x + width - BORDER_RADIUS, y + BORDER_RADIUS, BORDER_RADIUS, -90 * degrees, 0 * degrees);
         cairo_arc (cr, x + width - BORDER_RADIUS, y + height - BORDER_RADIUS, BORDER_RADIUS, 0 * degrees, 90 * degrees);
@@ -112,6 +113,8 @@ void renderButtons(int clear){
         cairo_set_source_hex(BUTTON_BORDER_COLOR);
         cairo_set_line_width (cr, BORDER_THICKNESS);
         cairo_stroke(cr);
+
+
         switch (current->type){
            case Default:
                 cairo_set_source_hex (BUTTON_FOREGROUND_COLOR);
@@ -127,6 +130,21 @@ void renderButtons(int clear){
         cairo_move_to(cr,   x + BUTTON_PADDING + BORDER_THICKNESS + centerx, 
                             y + BORDER_THICKNESS + BUTTON_PADDING + textheight);
         cairo_show_text(cr, current->text);
+
+        int SHADOWS = 0;
+        if (SHADOWS){
+            // Shitty Shadows
+            unsigned int SHADOW_SIZE = 1;
+            unsigned int SHADOW_OFFSET = 2;
+            cairo_set_source_rgb(cr,0.3,0.3,0.3);
+            cairo_move_to(cr, x + BORDER_THICKNESS + SHADOW_OFFSET, y + height);
+            cairo_line_to(cr, x + width - 2 * BORDER_THICKNESS, y + height);
+            cairo_move_to(cr, x + width, y + SHADOW_OFFSET + BORDER_THICKNESS);
+            cairo_line_to(cr, x + width, y + height - 2 * BORDER_THICKNESS);
+            cairo_arc (cr, x + width - BORDER_RADIUS + 1, y + height - BORDER_RADIUS + 1, BORDER_RADIUS - 1, 0, 90 * degrees);
+            cairo_set_line_width(cr, SHADOW_SIZE);
+            cairo_stroke(cr);
+        }
 
         current->x = x;
         current->y = y;
@@ -191,6 +209,11 @@ void buttonCheckPress(int x, int y){
 */
 
 void parseButtons(char *buttonstring){
+
+
+    int len = strlen(buttonstring);
+    if (len == 0)return;
+
     cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 0, 0);
     cairo_t *cairo = cairo_create(surface);
     cairo_text_extents_t *extents = malloc(sizeof(cairo_text_extents_t));
@@ -198,7 +221,6 @@ void parseButtons(char *buttonstring){
     cairo_set_font_size(cairo, FONT_SIZE);
 
     Button *current;
-    int len = strlen(buttonstring);
     int last = 0;
     for (int i = 0; i < len; i++)
     {   
