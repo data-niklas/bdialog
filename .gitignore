@@ -2,4 +2,4 @@
 **/*.o
 **/*.a
 **/googletest
-./vscode
+vscode/

@@ -273,6 +273,7 @@ int addButton(char* string, int i, int last, Button **current, cairo_t *cairo, c
 
     cairo_text_extents(cairo, temp->text, extents);
     temp->w=extents->width;
+    if (textheight == 0)textheight = extents->height;
     int tempwidth = extents->width + 2 * BUTTON_PADDING + 2 * BORDER_THICKNESS;
     if (BUTTON_MIN_WIDTH > tempwidth)tempwidth = BUTTON_MIN_WIDTH;
     buttonwidth += tempwidth + BUTTON_MARGIN;
